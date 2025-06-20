@@ -16,7 +16,7 @@
 
 #pragma once
 
-#define DYNAMIC_KEYMAP_LAYER_COUNT 7
+#define DYNAMIC_KEYMAP_LAYER_COUNT 5
 
 #ifdef RGB_MATRIX_ENABLE
 /* RGB Matrix driver configuration */
