@@ -72,7 +72,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______,  _______,  MS_W,     _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,    _______,    _______,  _______,  _______,  KC_BTN1,  KC_MS_U,  KC_BTN2,
         _______,  _______,  _______,  _______,  _______,  _______,  KC_LEFT,  KC_DOWN,  KC_UP,    KC_RIGHT, _______,  _______,              _______,                                  KC_MS_L,  KC_MS_D,  KC_MS_R,  _______,
         _______,            _______,  _______,  _______,  _______,  MS_B,     _______,  _______,  _______,  _______,  _______,              _______,              _______,            _______,  _______,  _______,
-        _______,  _______,  _______,                                _______,                                _______,  _______,  _______,    _______,    _______,  _______,  _______,  _______,            _______,  _______),
+        _______,  _______,  _______,                                QK_LEAD,                                _______,  _______,  _______,    _______,    _______,  _______,  _______,  _______,            _______,  _______),
     [WIN_FN] = LAYOUT_ansi_109(
         _______,  KC_BRID,  KC_BRIU,  KC_TASK,  KC_FILE,  RGB_VAD,  RGB_VAI,  KC_MPRV,  KC_MPLY,  KC_MNXT,  KC_MUTE,  KC_VOLD,  KC_VOLU,    RGB_TOG,    _______,  _______,  RGB_TOG,  _______,  _______,  _______,  _______,
         _______,  BT_HST1,  BT_HST2,  BT_HST3,  P2P4G,    _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,    _______,    _______,  _______,  _______,  _______,  _______,  _______,  _______,
@@ -96,7 +96,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
     [MAC_FN]   = {ENCODER_CCW_CW(RGB_VAD, RGB_VAI)},
     [WIN_BASE] = {ENCODER_CCW_CW(KC_VOLD, KC_VOLU)},
     [WIN_FN]   = {ENCODER_CCW_CW(RGB_VAD, RGB_VAI)},
-    [FN_1]   = {ENCODER_CCW_CW(KC_BRID, KC_BRIU)},
+    [FN_1]   = {ENCODER_CCW_CW(KC_MPRV, KC_MNXT)},
 };
 #endif // ENCODER_MAP_ENABLE
 
@@ -339,6 +339,45 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
     return true;
 }
+
+void leader_end_user(void) {
+    // git
+    if (leader_sequence_one_key(KC_G))
+    {
+        SEND_STRING("git ");
+    } else if (leader_sequence_two_keys(KC_G, KC_S))
+    {
+        SEND_STRING("git status\n");
+    } else if (leader_sequence_two_keys(KC_G, KC_A))
+    {
+        SEND_STRING("git add ");
+    } else if (leader_sequence_three_keys(KC_G, KC_A, KC_A))
+    {
+        SEND_STRING("git add .\n");
+    } else if (leader_sequence_two_keys(KC_G, KC_C))
+    {
+        SEND_STRING("git commit\n");
+    } else if (leader_sequence_two_keys(KC_G, KC_R))
+    {
+        SEND_STRING("git reset\n");
+    }
+
+    // user
+    else if (leader_sequence_two_keys(KC_U, KC_P))
+    {
+        SEND_STRING("alexander.yu.shamin@gmail.com");
+    }
+    else if (leader_sequence_two_keys(KC_U, KC_W))
+    {
+        SEND_STRING("ashamin@tech-round.com");
+    }
+    else if (leader_sequence_two_keys(KC_U, KC_D))
+    {
+        // send_string_with_delay("alexander.yu.shamin.development@gmail.com", 20);
+        SEND_STRING("alexander.yu.shamin.development@gmail.com");
+    }
+}
+
 
 #ifdef RGB_MATRIX_ENABLE
 layer_state_t layer_state_set_user(layer_state_t state) {

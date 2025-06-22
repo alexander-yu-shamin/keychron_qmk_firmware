@@ -16,6 +16,10 @@
 
 #pragma once
 
+#define LEADER_TIMEOUT 250
+#define LEADER_NO_TIMEOUT
+#define LEADER_PER_KEY_TIMING
+
 #define DYNAMIC_KEYMAP_LAYER_COUNT 5
 
 #ifdef RGB_MATRIX_ENABLE
