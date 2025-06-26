@@ -101,13 +101,14 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
 #endif // ENCODER_MAP_ENABLE
 
 
-// special functions
-static bool input_mode = false;
-static bool use_dot = true;
-static uint8_t input_length = 0;
-static char input_buffer[4] = "";
-static uint8_t out_n = UINT8_MAX;
-static uint8_t out_m = UINT8_MAX;
+// special macros
+#define SPECIAL_MACROS_MAX_INPUT_LENGTH 6
+static uint16_t sm_command = 0;
+static bool sm_input_mode = false;
+static bool sm_f1_use_dot = true;
+static uint8_t sm_input_length = 0;
+static char sm_input_buffer[SPECIAL_MACROS_MAX_INPUT_LENGTH + 1] = "";
+static uint8_t previous_rgb_mode = 0;
 
 
 void type_number(uint8_t number) {
@@ -131,103 +132,137 @@ void type_number(uint8_t number) {
     }
 }
 
+#define ABS(x) ((x) < 0 ? -(x) : (x))
+
 void type_numbers_from_n_to_m(uint8_t n, uint8_t m)
 {
-    for(uint8_t i = n; i <= m; i++)
+    if (n <= m)
     {
-        type_number(i);
-        if(use_dot)
+        for (uint8_t i = n; i <= m; i++)
         {
-            tap_code(KC_DOT);
-        }
-        tap_code(KC_SPACE);
-
-        if(i != m)
-        {
-            tap_code(KC_ENTER);
+            type_number(i);
+            if (sm_f1_use_dot) tap_code(KC_DOT);
+            tap_code(KC_SPACE);
+            if (i != m) tap_code(KC_ENTER);
         }
     }
-    uint8_t diff = m - n;
+    else
+    {
+        for (uint8_t i = n; i >= m; i--)
+        {
+            type_number(i);
+            if (sm_f1_use_dot) tap_code(KC_DOT);
+            tap_code(KC_SPACE);
+            if (i != m) tap_code(KC_ENTER);
+            if (i == 0) break;
+        }
+    }
+
+    uint8_t diff = (n > m) ? n - m : m - n;
     for(uint8_t i = 0; i < diff; i++)
     {
         tap_code(KC_UP);
     }
 }
 
-bool process_user_input(uint16_t keycode, keyrecord_t *record)
+void init_special_macros(void)
 {
-    if(record->event.pressed)
-    {
-        if(input_mode)
-        {
-            if((keycode >= KC_1 && keycode <= KC_9) || keycode == KC_0)
-            {
-                if(input_length < 3)
-                {
-                    char digit = (keycode - KC_1 + '1');
-                    if (keycode == KC_0)
-                    {
-                        digit = '0';
-                    }
-                    input_buffer[input_length] = digit;
-                    input_length++;
-                    input_buffer[input_length] = '\0';
-                    return false;
-                }
-            }
+    sm_input_mode = false;
+    sm_input_buffer[0] = '\0';
+    sm_input_length = 0;
+    sm_command = 0;
+    rgb_matrix_mode(previous_rgb_mode);
+}
 
-            if (keycode == KC_ENTER)
-            {
-                int value = atoi(input_buffer);
-                if(value >= 1 && value <= 100)
-                {
-                    if(out_n == UINT8_MAX)
-                    {
-                        out_n = value;
-                        input_length = 0;
-                        input_buffer[0] = '\0';
-                        out_m = UINT8_MAX;
-                        return false;
-                    }
-                    else
-                    {
-                        out_m = value;
-                        input_mode = false;
-                        type_numbers_from_n_to_m(out_n, out_m);
-                        input_length = 0;
-                        input_buffer[0] = '\0';
-                        out_n = UINT8_MAX;
-                        out_m = UINT8_MAX;
-                        return false;
-                    }
-                }
-                else
-                {
-                    SEND_STRING("bad values");
-                    input_mode = false;
-                    input_length = 0;
-                    input_buffer[0] = '\0';
-                    out_n = UINT8_MAX;
-                    out_m = UINT8_MAX;
-                    return false;
-                }
-            }
-
-            if (keycode == KC_ESC)
-            {
-                input_mode = false;
-                input_buffer[0] = '\0';
-                out_n = UINT8_MAX;
-                out_m = UINT8_MAX;
-                return false;
-            }
-        }
+bool parse_range(const char *buffer, uint8_t *out_n, uint8_t *out_m) {
+    const char *dots = strstr(buffer, "..");
+    if (!dots) {
+        return false; // не найдены две точки
     }
+
+    char left[4] = {0};  // макс 3 цифры + \0
+    char right[4] = {0};
+
+    size_t left_len = dots - buffer;
+    if (left_len >= sizeof(left)) return false;
+    strncpy(left, buffer, left_len);
+    strncpy(right, dots + 2, sizeof(right) - 1);
+
+    int n = atoi(left);
+    int m = atoi(right);
+
+    if (n < 0 || n > 255 || m < 0 || m > 255) return false;
+
+    *out_n = (uint8_t)n;
+    *out_m = (uint8_t)m;
     return true;
 }
 
+bool process_user_input(uint16_t keycode, keyrecord_t *record)
+{
+    if(!sm_input_mode)
+    {
+        return true;
+    }
+
+    if(!record->event.pressed)
+    {
+        return true;
+    }
+
+    if (keycode == KC_ESC)
+    {
+        init_special_macros();
+        return false;
+    }
+
+    if(keycode == KC_ENTER)
+    {
+        switch(sm_command)
+        {
+            case MKS_F1:
+            {
+                uint8_t a, b;
+                if (parse_range(sm_input_buffer, &a, &b))
+                {
+                    type_numbers_from_n_to_m(a, b);
+                }
+                else{
+                    SEND_STRING("bad values");
+                }
+            }
+        }
+
+        init_special_macros();
+        return false;
+    }
+
+    if((keycode >= KC_1 && keycode <= KC_9) || keycode == KC_0 || keycode == KC_DOT)
+    {
+        if(sm_input_length < SPECIAL_MACROS_MAX_INPUT_LENGTH)
+        {
+            char digit = (keycode - KC_1 + '1');
+            if (keycode == KC_0)
+            {
+                digit = '0';
+            }
+            if(keycode == KC_DOT)
+            {
+                digit = '.';
+            }
+
+            sm_input_buffer[sm_input_length] = digit;
+            sm_input_length++;
+            sm_input_buffer[sm_input_length] = '\0';
+            return false;
+        }
+    }
+
+    return false;
+}
+
 uint16_t custom_lt_timer;
-// clang-format on
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record)
 {
     if (!process_record_keychron_common(keycode, record))
@@ -323,15 +358,18 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
         // print from N to M
         case MKS_F1:
         {
-            use_dot = mods != (MOD_BIT(KC_LSFT));
-            if(!input_mode)
+            if(record->event.pressed)
             {
-                input_mode = true;
-                input_buffer[0] = '\0';
-                input_length = 0;
-                out_n = UINT8_MAX;
-                out_m = UINT8_MAX;
-                return false;
+                if(!sm_input_mode)
+                {
+                    previous_rgb_mode = rgb_matrix_get_mode();
+                    init_special_macros();
+                    sm_f1_use_dot = mods != (MOD_BIT(KC_LSFT));
+                    sm_input_mode = true;
+                    sm_command = MKS_F1;
+                    rgb_matrix_mode(RGB_MATRIX_SOLID_COLOR);
+                    return false;
+                }
             }
             break;
         }
