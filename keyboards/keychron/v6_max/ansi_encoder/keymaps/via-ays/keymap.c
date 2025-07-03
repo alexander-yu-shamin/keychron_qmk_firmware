@@ -414,6 +414,29 @@ void leader_end_user(void) {
         // send_string_with_delay("alexander.yu.shamin.development@gmail.com", 20);
         SEND_STRING("alexander.yu.shamin.development@gmail.com");
     }
+
+    // html
+    else if (leader_sequence_two_keys(KC_H, KC_U))
+    {
+        SEND_STRING("<u></u>");
+         tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT);
+    }
+    else if (leader_sequence_three_keys(KC_H, KC_S, KC_J))
+    {
+        SEND_STRING("<sub></sub>");
+         tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT); tap_code(KC_LEFT); tap_code(KC_LEFT);
+    }
+    else if (leader_sequence_three_keys(KC_H, KC_S, KC_K))
+    {
+        SEND_STRING("<sup></sup>");
+         tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT); tap_code(KC_LEFT); tap_code(KC_LEFT);
+    }
+    else if (leader_sequence_two_keys(KC_H, KC_K))
+    {
+        SEND_STRING("<kbd></kbd>");
+         tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT);  tap_code(KC_LEFT); tap_code(KC_LEFT); tap_code(KC_LEFT);
+    }
+
 }
 
 
